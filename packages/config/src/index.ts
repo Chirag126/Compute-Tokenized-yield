@@ -1,0 +1,1 @@
+export const configPackageName = 'tokenized-compute-yield-config';

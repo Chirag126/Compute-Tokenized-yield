@@ -1,0 +1,470 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum ProviderStatus {
+  ACTIVE
+  DISABLED
+  DEGRADED
+}
+
+enum ComputeAssetStatus {
+  DISCOVERED
+  AVAILABLE
+  RESERVED
+  RUNNING
+  UNAVAILABLE
+  RETIRED
+}
+
+enum InstanceStatus {
+  PENDING
+  RUNNING
+  STOPPED
+  FAILED
+  TERMINATED
+}
+
+enum RevenueStatus {
+  PENDING
+  VERIFIED
+  RECONCILED
+  REJECTED
+}
+
+enum ReconciliationStatus {
+  PENDING
+  MATCHED
+  MISMATCHED
+  FAILED
+}
+
+enum DistributionStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  CANCELLED
+}
+
+enum ClaimStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum SyncJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model User {
+  id          String     @id @default(uuid()) @db.Uuid
+  email       String?    @unique @db.VarChar(320)
+  displayName String?    @db.VarChar(120)
+  status      UserStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  wallets       Wallet[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+
+  @@index([status, createdAt])
+}
+
+model Wallet {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  address   String   @db.VarChar(42)
+  chainId   Int
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([chainId, address])
+  @@index([userId])
+}
+
+model Provider {
+  id        String         @id @default(uuid()) @db.Uuid
+  key       String         @unique @db.VarChar(80)
+  name      String         @db.VarChar(160)
+  baseUrl   String?        @db.VarChar(500)
+  status    ProviderStatus @default(ACTIVE)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  assets    ComputeAsset[]
+  instances ComputeInstance[]
+  billings  ProviderBilling[]
+  metrics   ProviderMetric[]
+}
+
+model ComputeAsset {
+  id              String             @id @default(uuid()) @db.Uuid
+  providerId      String             @db.Uuid
+  externalAssetId String             @db.VarChar(255)
+  name            String             @db.VarChar(200)
+  description     String?
+  region          String?            @db.VarChar(120)
+  status          ComputeAssetStatus @default(DISCOVERED)
+  metadataUri     String?            @db.VarChar(1000)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  lastSeenAt      DateTime           @default(now())
+  deletedAt       DateTime?
+
+  provider        Provider          @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  resources       ComputeResource[]
+  gpuDevices      GpuDevice[]
+  instances       ComputeInstance[]
+  tokenizedAssets TokenizedAsset[]
+  revenueRecords  RevenueRecord[]
+  metrics         AssetMetric[]
+
+  @@unique([providerId, externalAssetId])
+  @@index([providerId, status])
+  @@index([status, createdAt])
+}
+
+model ComputeResource {
+  id             String   @id @default(uuid()) @db.Uuid
+  computeAssetId String   @db.Uuid
+  resourceType   String   @db.VarChar(100)
+  quantity       Decimal  @db.Decimal(30, 8)
+  unit           String   @db.VarChar(40)
+  details        Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  computeAsset ComputeAsset @relation(fields: [computeAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([computeAssetId, resourceType])
+  @@index([computeAssetId, resourceType])
+}
+
+model GpuDevice {
+  id             String   @id @default(uuid()) @db.Uuid
+  computeAssetId String   @db.Uuid
+  model          String   @db.VarChar(160)
+  memoryGb       Int?
+  count          Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  computeAsset ComputeAsset @relation(fields: [computeAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([computeAssetId, model])
+  @@index([computeAssetId])
+  @@index([model])
+}
+
+model ComputeInstance {
+  id                 String         @id @default(uuid()) @db.Uuid
+  providerId         String         @db.Uuid
+  computeAssetId     String?        @db.Uuid
+  providerInstanceId String         @db.VarChar(255)
+  status             InstanceStatus @default(PENDING)
+  startedAt          DateTime?
+  stoppedAt          DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  provider       Provider          @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  computeAsset   ComputeAsset?     @relation(fields: [computeAssetId], references: [id], onDelete: SetNull)
+  usage          ComputeUsage[]
+  billingRecords ProviderBilling[]
+
+  @@unique([providerId, providerInstanceId])
+  @@index([providerId, status])
+  @@index([computeAssetId])
+}
+
+model ComputeUsage {
+  id                 String   @id @default(uuid()) @db.Uuid
+  instanceId         String   @db.Uuid
+  periodStart        DateTime
+  periodEnd          DateTime
+  gpuSeconds         BigInt?
+  utilizationPercent Decimal? @db.Decimal(7, 4)
+  recordedAt         DateTime @default(now())
+  sourceReference    String?  @db.VarChar(255)
+
+  instance ComputeInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@unique([instanceId, periodStart, periodEnd])
+  @@index([periodStart, periodEnd])
+}
+
+model ProviderBilling {
+  id                String    @id @default(uuid()) @db.Uuid
+  providerId        String    @db.Uuid
+  instanceId        String?   @db.Uuid
+  externalInvoiceId String?   @db.VarChar(255)
+  amount            Decimal   @db.Decimal(36, 18)
+  currency          String    @db.VarChar(20)
+  periodStart       DateTime
+  periodEnd         DateTime
+  rawPayload        Json?
+  billedAt          DateTime?
+  createdAt         DateTime  @default(now())
+
+  provider       Provider         @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  instance       ComputeInstance? @relation(fields: [instanceId], references: [id], onDelete: SetNull)
+  revenueRecords RevenueRecord[]
+
+  @@unique([providerId, externalInvoiceId])
+  @@index([providerId, periodStart])
+}
+
+model TokenizedAsset {
+  id              String   @id @default(uuid()) @db.Uuid
+  computeAssetId  String   @db.Uuid
+  chainId         Int
+  registryAssetId Decimal? @db.Decimal(78, 0)
+  tokenAddress    String   @db.VarChar(42)
+  name            String   @db.VarChar(160)
+  symbol          String   @db.VarChar(40)
+  decimals        Int      @default(18)
+  status          String   @default("PENDING") @db.VarChar(40)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  computeAsset       ComputeAsset        @relation(fields: [computeAssetId], references: [id], onDelete: Restrict)
+  distributions      Distribution[]
+  ownershipSnapshots OwnershipSnapshot[]
+
+  @@unique([chainId, tokenAddress])
+  @@unique([chainId, registryAssetId])
+  @@index([computeAssetId])
+}
+
+model RevenueRecord {
+  id              String        @id @default(uuid()) @db.Uuid
+  computeAssetId  String        @db.Uuid
+  billingRecordId String?       @db.Uuid
+  source          String        @db.VarChar(80)
+  sourceReference String?       @db.VarChar(255)
+  amount          Decimal       @db.Decimal(36, 18)
+  currency        String        @db.VarChar(20)
+  periodStart     DateTime
+  periodEnd       DateTime
+  status          RevenueStatus @default(PENDING)
+  verifiedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  computeAsset    ComputeAsset            @relation(fields: [computeAssetId], references: [id], onDelete: Restrict)
+  billingRecord   ProviderBilling?        @relation(fields: [billingRecordId], references: [id], onDelete: SetNull)
+  reconciliations RevenueReconciliation[]
+
+  @@unique([source, sourceReference])
+  @@index([computeAssetId, periodStart])
+  @@index([status, createdAt])
+}
+
+model RevenueReconciliation {
+  id              String               @id @default(uuid()) @db.Uuid
+  revenueRecordId String               @db.Uuid
+  status          ReconciliationStatus @default(PENDING)
+  expectedAmount  Decimal              @db.Decimal(36, 18)
+  actualAmount    Decimal?             @db.Decimal(36, 18)
+  variance        Decimal?             @db.Decimal(36, 18)
+  details         Json?
+  reconciledAt    DateTime?
+  createdAt       DateTime             @default(now())
+
+  revenueRecord RevenueRecord @relation(fields: [revenueRecordId], references: [id], onDelete: Restrict)
+
+  @@index([revenueRecordId, status])
+}
+
+model Distribution {
+  id                    String             @id @default(uuid()) @db.Uuid
+  tokenizedAssetId      String             @db.Uuid
+  chainId               Int
+  contractAddress       String             @db.VarChar(42)
+  onChainDistributionId Decimal            @db.Decimal(78, 0)
+  revenueTokenAddress   String             @db.VarChar(42)
+  amount                Decimal            @db.Decimal(78, 0)
+  snapshotBlock         BigInt
+  transactionHash       String?            @db.VarChar(66)
+  status                DistributionStatus @default(PENDING)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  tokenizedAsset TokenizedAsset @relation(fields: [tokenizedAssetId], references: [id], onDelete: Restrict)
+  claims         Claim[]
+
+  @@unique([chainId, contractAddress, onChainDistributionId])
+  @@index([tokenizedAssetId, status])
+  @@index([chainId, snapshotBlock])
+}
+
+model Claim {
+  id              String      @id @default(uuid()) @db.Uuid
+  distributionId  String      @db.Uuid
+  walletAddress   String      @db.VarChar(42)
+  amount          Decimal     @db.Decimal(78, 0)
+  transactionHash String?     @db.VarChar(66)
+  blockNumber     BigInt?
+  status          ClaimStatus @default(PENDING)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  distribution Distribution @relation(fields: [distributionId], references: [id], onDelete: Restrict)
+
+  @@unique([distributionId, walletAddress])
+  @@index([walletAddress, status])
+}
+
+model BlockchainTransaction {
+  id          String            @id @default(uuid()) @db.Uuid
+  chainId     Int
+  hash        String            @db.VarChar(66)
+  fromAddress String            @db.VarChar(42)
+  toAddress   String?           @db.VarChar(42)
+  nonce       BigInt?
+  blockNumber BigInt?
+  status      TransactionStatus @default(PENDING)
+  gasUsed     BigInt?
+  createdAt   DateTime          @default(now())
+  confirmedAt DateTime?
+
+  events BlockchainEvent[]
+
+  @@unique([chainId, hash])
+  @@index([chainId, blockNumber])
+  @@index([fromAddress, createdAt])
+}
+
+model BlockchainEvent {
+  id              String    @id @default(uuid()) @db.Uuid
+  chainId         Int
+  transactionHash String    @db.VarChar(66)
+  logIndex        Int
+  blockNumber     BigInt
+  blockHash       String    @db.VarChar(66)
+  contractAddress String    @db.VarChar(42)
+  eventName       String    @db.VarChar(120)
+  args            Json
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  transaction BlockchainTransaction? @relation(fields: [chainId, transactionHash], references: [chainId, hash], onDelete: Restrict)
+
+  @@unique([chainId, transactionHash, logIndex])
+  @@index([chainId, blockNumber])
+  @@index([contractAddress, eventName])
+}
+
+model OwnershipSnapshot {
+  id               String   @id @default(uuid()) @db.Uuid
+  tokenizedAssetId String   @db.Uuid
+  walletAddress    String   @db.VarChar(42)
+  blockNumber      BigInt
+  balance          Decimal  @db.Decimal(78, 0)
+  createdAt        DateTime @default(now())
+
+  tokenizedAsset TokenizedAsset @relation(fields: [tokenizedAssetId], references: [id], onDelete: Restrict)
+
+  @@unique([tokenizedAssetId, walletAddress, blockNumber])
+  @@index([walletAddress, blockNumber])
+}
+
+model AssetMetric {
+  id             String   @id @default(uuid()) @db.Uuid
+  computeAssetId String   @db.Uuid
+  recordedAt     DateTime @default(now())
+  utilization    Decimal? @db.Decimal(7, 4)
+  capacity       Decimal? @db.Decimal(30, 8)
+  capacityUnit   String?  @db.VarChar(40)
+  source         String   @db.VarChar(80)
+  details        Json?
+
+  computeAsset ComputeAsset @relation(fields: [computeAssetId], references: [id], onDelete: Cascade)
+
+  @@index([computeAssetId, recordedAt])
+}
+
+model ProviderMetric {
+  id         String   @id @default(uuid()) @db.Uuid
+  providerId String   @db.Uuid
+  recordedAt DateTime @default(now())
+  metricName String   @db.VarChar(120)
+  value      Decimal? @db.Decimal(36, 12)
+  unit       String?  @db.VarChar(40)
+  details    Json?
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId, metricName, recordedAt])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  actorUserId  String?  @db.Uuid
+  action       String   @db.VarChar(120)
+  resourceType String   @db.VarChar(120)
+  resourceId   String?  @db.VarChar(255)
+  metadata     Json?
+  ipAddress    String?  @db.VarChar(45)
+  createdAt    DateTime @default(now())
+
+  actor User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([resourceType, resourceId])
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  type      String    @db.VarChar(80)
+  title     String    @db.VarChar(200)
+  body      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+model SyncJob {
+  id          String        @id @default(uuid()) @db.Uuid
+  jobType     String        @db.VarChar(120)
+  status      SyncJobStatus @default(QUEUED)
+  cursor      String?       @db.VarChar(500)
+  attempts    Int           @default(0)
+  startedAt   DateTime?
+  completedAt DateTime?
+  lastError   String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status, createdAt])
+  @@index([jobType, status])
+}

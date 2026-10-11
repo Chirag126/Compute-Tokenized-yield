@@ -1,0 +1,1 @@
+export const PACKAGE_NAME = 'tokenized-compute-yield-shared';

@@ -1,0 +1,250 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+
+interface IComputeAssetToken {
+    function getPastTotalSupply(uint256 timepoint) external view returns (uint256);
+
+    function getPastVotes(address account, uint256 timepoint) external view returns (uint256);
+}
+
+contract RevenueDistributor is AccessControl, Pausable {
+    using SafeERC20 for IERC20;
+
+    bytes32 public constant REVENUE_MANAGER_ROLE = keccak256("REVENUE_MANAGER_ROLE");
+
+    uint256 private constant PRECISION = 1e18;
+    uint256 public constant CLAIM_PERIOD = 90 days;
+    uint256 public constant RECOVERY_DELAY = 7 days;
+    address public treasury;
+
+    struct Distribution {
+        uint256 distributionId;
+        address token;
+        address revenueToken;
+        uint256 snapshotBlock;
+        uint256 totalSupply;
+        uint256 amount;
+        uint256 amountPerToken;
+        uint256 claimedAmount;
+        uint64 createdAt;
+        bool active;
+        uint64 claimDeadline;
+        bool recovered;
+    }
+
+    mapping(uint256 => Distribution) private _distributions;
+
+    mapping(uint256 => mapping(address => uint256)) private _claimed;
+
+    uint256 private _nextDistributionId = 1;
+
+    error InvalidAdmin();
+    error InvalidToken();
+    error InvalidRevenueToken();
+    error InvalidAmount();
+    error InvalidSnapshot();
+    error InvalidDistribution();
+    error DistributionInactive();
+    error NothingToClaim();
+    error AlreadyClaimed();
+    error InvalidTreasury();
+    error ClaimDeadlinePassed();
+    error RecoveryTooEarly();
+    error AlreadyRecovered();
+
+    event RevenueDeposited(
+        uint256 indexed distributionId,
+        address indexed token,
+        address indexed revenueToken,
+        uint256 snapshotBlock,
+        uint256 totalSupply,
+        uint256 amount
+    );
+
+    event RevenueClaimed(uint256 indexed distributionId, address indexed account, uint256 amount);
+
+    event DistributionDeactivated(uint256 indexed distributionId);
+    event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+    event UnclaimedRevenueRecovered(uint256 indexed distributionId, address indexed treasury, uint256 amount);
+
+    constructor(address admin) {
+        if (admin == address(0)) {
+            revert InvalidAdmin();
+        }
+
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(REVENUE_MANAGER_ROLE, admin);
+        treasury = admin;
+    }
+
+    function depositRevenue(address token, address revenueToken, uint256 snapshotBlock, uint256 amount)
+        external
+        onlyRole(REVENUE_MANAGER_ROLE)
+        whenNotPaused
+        returns (uint256 distributionId)
+    {
+        if (token == address(0)) {
+            revert InvalidToken();
+        }
+
+        if (revenueToken == address(0)) {
+            revert InvalidRevenueToken();
+        }
+
+        if (amount == 0) {
+            revert InvalidAmount();
+        }
+
+        if (snapshotBlock >= block.number) {
+            revert InvalidSnapshot();
+        }
+
+        uint256 totalSupply = IComputeAssetToken(token).getPastTotalSupply(snapshotBlock);
+
+        if (totalSupply == 0) {
+            revert InvalidAmount();
+        }
+
+        uint256 amountPerToken = (amount * PRECISION) / totalSupply;
+
+        if (amountPerToken == 0) {
+            revert InvalidAmount();
+        }
+
+        IERC20(revenueToken).safeTransferFrom(msg.sender, address(this), amount);
+
+        distributionId = _nextDistributionId++;
+
+        _distributions[distributionId] = Distribution({
+            distributionId: distributionId,
+            token: token,
+            revenueToken: revenueToken,
+            snapshotBlock: snapshotBlock,
+            totalSupply: totalSupply,
+            amount: amount,
+            amountPerToken: amountPerToken,
+            claimedAmount: 0,
+            createdAt: uint64(block.timestamp),
+            active: true,
+            claimDeadline: uint64(block.timestamp + CLAIM_PERIOD),
+            recovered: false
+        });
+
+        emit RevenueDeposited(distributionId, token, revenueToken, snapshotBlock, totalSupply, amount);
+    }
+
+    function claim(uint256 distributionId) external whenNotPaused returns (uint256 claimAmount) {
+        Distribution storage distribution = _getDistribution(distributionId);
+
+        if (!distribution.active) {
+            revert DistributionInactive();
+        }
+
+        if (block.timestamp > distribution.claimDeadline) {
+            revert ClaimDeadlinePassed();
+        }
+
+        if (_claimed[distributionId][msg.sender] != 0) {
+            revert AlreadyClaimed();
+        }
+
+        uint256 holderVotes =
+            IComputeAssetToken(distribution.token).getPastVotes(msg.sender, distribution.snapshotBlock);
+
+        if (holderVotes == 0) {
+            revert NothingToClaim();
+        }
+
+        claimAmount = (holderVotes * distribution.amountPerToken) / PRECISION;
+
+        if (claimAmount == 0) {
+            revert NothingToClaim();
+        }
+
+        uint256 remaining = distribution.amount - distribution.claimedAmount;
+
+        if (claimAmount > remaining) {
+            claimAmount = remaining;
+        }
+
+        _claimed[distributionId][msg.sender] = claimAmount;
+        distribution.claimedAmount += claimAmount;
+
+        IERC20(distribution.revenueToken).safeTransfer(msg.sender, claimAmount);
+
+        emit RevenueClaimed(distributionId, msg.sender, claimAmount);
+    }
+
+    function deactivateDistribution(uint256 distributionId) external onlyRole(REVENUE_MANAGER_ROLE) {
+        Distribution storage distribution = _getDistribution(distributionId);
+
+        distribution.active = false;
+
+        emit DistributionDeactivated(distributionId);
+    }
+
+
+    function setTreasury(address newTreasury) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newTreasury == address(0)) revert InvalidTreasury();
+
+        address oldTreasury = treasury;
+        treasury = newTreasury;
+
+        emit TreasuryUpdated(oldTreasury, newTreasury);
+    }
+
+    function recoverUnclaimedRevenue(uint256 distributionId)
+        external
+        onlyRole(REVENUE_MANAGER_ROLE)
+        returns (uint256 amount)
+    {
+        Distribution storage distribution = _getDistribution(distributionId);
+
+        if (distribution.recovered) revert AlreadyRecovered();
+
+        if (block.timestamp <= uint256(distribution.claimDeadline) + RECOVERY_DELAY) {
+            revert RecoveryTooEarly();
+        }
+
+        distribution.recovered = true;
+        amount = distribution.amount - distribution.claimedAmount;
+
+        if (amount > 0) {
+            IERC20(distribution.revenueToken).safeTransfer(treasury, amount);
+        }
+
+        emit UnclaimedRevenueRecovered(distributionId, treasury, amount);
+    }
+    function getDistribution(uint256 distributionId) external view returns (Distribution memory) {
+        return _getDistribution(distributionId);
+    }
+
+    function claimedAmount(uint256 distributionId, address account) external view returns (uint256) {
+        return _claimed[distributionId][account];
+    }
+
+    function nextDistributionId() external view returns (uint256) {
+        return _nextDistributionId;
+    }
+
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
+    }
+
+    function _getDistribution(uint256 distributionId) internal view returns (Distribution storage distribution) {
+        if (distributionId == 0 || distributionId >= _nextDistributionId) {
+            revert InvalidDistribution();
+        }
+
+        distribution = _distributions[distributionId];
+    }
+}
