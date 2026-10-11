@@ -77,3 +77,35 @@ h2 { margin-top: 7px; color: #edf0f8; font: 600 19px 'Space Grotesk', sans-serif
 @media (max-width: 1200px) { .main-content { padding-right: 25px; padding-left: 25px; }.sidebar { width: 215px; }.main-content { margin-left: 215px; }.metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.hero-orb { margin-right: 12px; }.content-grid { grid-template-columns: minmax(0, 1.2fr) minmax(270px, .8fr); } }
 @media (max-width: 850px) { .sidebar { position: static; width: 100%; height: auto; padding: 17px 20px; border-right: 0; border-bottom: 1px solid #1d2432; }.brand { padding: 0; }.workspace-label, .sidebar-bottom { display: none; }.side-nav { display: flex; gap: 6px; margin-top: 17px; overflow-x: auto; }.nav-link { flex: 0 0 auto; min-height: 36px; padding: 0 10px; font-size: 10px; }.main-content { margin-left: 0; padding: 0 20px 24px; }.topbar { min-height: 62px; }.welcome-row { padding: 31px 0 25px; }.hero-orb { width: 85px; height: 85px; flex-basis: 85px; margin-right: 0; }.orb-core { width: 43px; height: 43px; border-radius: 12px; font-size: 13px; }.content-grid { grid-template-columns: 1fr; }.revenue-panel { min-height: 0; } }
 @media (max-width: 540px) { .main-content { padding-right: 13px; padding-left: 13px; }.breadcrumb { font-size: 10px; }.topbar-actions { gap: 6px; }.environment-tag { font-size: 8px; }.refresh-button { padding: 8px; font-size: 10px; }.refresh-button > span { display: none; }.welcome-row { padding-top: 26px; }.hero-orb { display: none; }h1 { font-size: 29px; }.welcome-copy { font-size: 11px; }.metrics-grid { gap: 9px; }.metric-card { padding: 13px; }.metric-top { font-size: 10px; }.metric-icon { width: 24px; height: 24px; }.metric-value { font-size: 23px; }.metric-value.small-value { font-size: 21px; }.metric-bottom { gap: 6px; font-size: 9px; }.status-pill { font-size: 8px; }.panel-heading { padding: 17px 15px 14px; }.market-toolbar { padding: 12px 15px; }.offer-list { padding: 0 15px; }.gpu-symbol { width: 31px; height: 31px; flex-basis: 31px; }.gpu-details strong { max-width: 145px; font-size: 10px; }.gpu-price strong { font-size: 10px; }.panel-footnote { padding: 12px 15px; }.detail-row { margin: 0 15px; }.contract-status { margin-left: 15px; }.explorer-link { margin-right: 15px; margin-left: 15px; }.security-note { padding: 13px 15px; }.page-footer { flex-direction: column; line-height: 1.8; }.page-footer > span:last-child { font-family: 'DM Sans', sans-serif; } }
+
+/* Step 3: marketplace data-source controls */
+.market-source-switch {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 22px 0;
+}
+.source-tab {
+  padding: 8px 12px;
+  border: 1px solid #2a3345;
+  border-radius: 7px;
+  background: #0c111a;
+  color: #8e9bb0;
+  font-size: 10px;
+  cursor: pointer;
+}
+.source-tab:hover { border-color: #5c5287; color: #d8d0ff; }
+.source-tab.active {
+  border-color: #6555a0;
+  background: #211b37;
+  color: #d4caff;
+}
+.source-tab:focus-visible,
+.market-source-switch button:focus-visible {
+  outline: 2px solid #a99aff;
+  outline-offset: 2px;
+}
+@media (max-width: 540px) {
+  .market-source-switch { padding-right: 15px; padding-left: 15px; }
+}

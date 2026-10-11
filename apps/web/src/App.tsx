@@ -1,6 +1,10 @@
 ﻿import { useCallback, useEffect, useState } from 'react'
 import './App.css'
+import TransactionPanel from './TransactionPanel'
+import WalletPanel from './WalletPanel'
 
+
+import RevenuePanel from './RevenuePanel'
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000').replace(/\/+$/, '')
 
 type ApiState<T> = {
@@ -83,16 +87,28 @@ function StatusPill({ state }: { state: 'ok' | 'bad' | 'pending' }) {
 }
 
 function App() {
+  const [activeWorkspace, setActiveWorkspace] = useState<'overview' | 'token' | 'revenue'>('overview')
   const [refreshKey, setRefreshKey] = useState(0)
   const [search, setSearch] = useState('')
+  const [marketSource, setMarketSource] = useState<'live' | 'saved'>('live')
 
   const chain = useApi<Record<string, unknown>>('/api/v1/chain/status', refreshKey)
   const revenue = useApi<Record<string, unknown>>('/api/v1/revenue/status', refreshKey)
   const offers = useApi<{ offers?: Offer[]; count?: number }>('/api/v1/providers/vast/offers?limit=12', refreshKey)
+  const persistedOffers = useApi<{
+    offers?: Offer[]
+    count?: number
+    source?: string
+  }>('/api/v1/providers/vast/persisted-offers?limit=12', refreshKey)
 
-  const offerList = Array.isArray(offers.data?.offers) ? offers.data.offers : []
+  const selectedOffers = marketSource === 'live' ? offers : persistedOffers
+  const offerList = Array.isArray(selectedOffers.data?.offers)
+    ? selectedOffers.data.offers
+    : []
   const visibleOffers = offerList.filter((offer) =>
-    String(offer.gpuName ?? 'GPU offer').toLowerCase().includes(search.toLowerCase()),
+    String(offer.gpuName ?? offer.name ?? 'GPU offer')
+      .toLowerCase()
+      .includes(search.toLowerCase()),
   )
 
   const chainConnected = chain.data?.connected === true
@@ -109,9 +125,10 @@ function App() {
 
         <div className="workspace-label">WORKSPACE</div>
         <nav className="side-nav">
-          <a className="nav-link active" href="#overview"><span>◫</span> Overview</a>
-          <a className="nav-link" href="#marketplace"><span>▦</span> Compute marketplace</a>
-          <a className="nav-link" href="#revenue"><span>↗</span> Revenue sharing</a>
+          <a className={`nav-link ${activeWorkspace === 'overview' ? 'active' : ''}`} href="#overview" onClick={(event) => { event.preventDefault(); setActiveWorkspace('overview') }}><span>◫</span> Overview</a>
+          <a className="nav-link" href="#marketplace" onClick={(event) => { event.preventDefault(); setActiveWorkspace('overview'); document.getElementById('marketplace')?.scrollIntoView({ behavior: 'smooth' }) }}><span>▦</span> Compute marketplace</a>
+          <a className={`nav-link ${activeWorkspace === 'revenue' ? 'active' : ''}`} href="#revenue-workspace" onClick={(event) => { event.preventDefault(); setActiveWorkspace('revenue') }}><span>↗</span> Revenue sharing</a>
+          <a className={`nav-link ${activeWorkspace === 'token' ? 'active' : ''}`} href="#token-governance" onClick={(event) => { event.preventDefault(); setActiveWorkspace('token') }}><span>◇</span> Token &amp; Governance</a>
         </nav>
 
         <div className="sidebar-bottom">
@@ -125,7 +142,7 @@ function App() {
 
       <section className="main-content" id="overview">
         <header className="topbar">
-          <div className="breadcrumb">Workspace <span>/</span> Overview</div>
+          <div className="breadcrumb">Workspace <span>/</span> {activeWorkspace === 'token' ? 'Token & Governance' : activeWorkspace === 'revenue' ? 'Revenue Sharing' : 'Overview'}</div>
           <div className="topbar-actions">
             <span className="environment-tag">TESTNET</span>
             <button className="refresh-button" onClick={() => setRefreshKey((key) => key + 1)} disabled={chain.loading || offers.loading || revenue.loading}>
@@ -134,6 +151,9 @@ function App() {
           </div>
         </header>
 
+        {activeWorkspace === 'overview' ? (
+          <>
+        <TransactionPanel />
         <section className="welcome-row">
           <div>
             <div className="eyebrow"><span className="eyebrow-line" /> COMPUTE FINANCE, ONCHAIN</div>
@@ -178,8 +198,34 @@ function App() {
         <section className="content-grid">
           <article className="panel marketplace-panel" id="marketplace">
             <div className="panel-heading">
-              <div><div className="section-kicker">CAPACITY DISCOVERY</div><h2>GPU marketplace</h2><p>Compute offers fetched from the provider API.</p></div>
-              <span className="live-label"><span /> LIVE API</span>
+              <div><div className="section-kicker">CAPACITY DISCOVERY</div><h2>GPU marketplace</h2><p>{marketSource === 'live' ? 'Current offers fetched directly from the provider.' : 'Previously synchronized offers saved in PostgreSQL.'}</p></div>
+              <span className="live-label"><span /> {marketSource === 'live' ? 'LIVE API' : 'SAVED DATABASE'}</span>
+            </div>
+
+            <div className="market-source-switch" role="group" aria-label="Marketplace data source">
+              <button
+                type="button"
+                className={marketSource === 'live' ? 'source-tab active' : 'source-tab'}
+                aria-pressed={marketSource === 'live'}
+                onClick={() => setMarketSource('live')}
+              >
+                Live offers
+              </button>
+              <button
+                type="button"
+                className={marketSource === 'saved' ? 'source-tab active' : 'source-tab'}
+                aria-pressed={marketSource === 'saved'}
+                onClick={() => setMarketSource('saved')}
+              >
+                Saved offers
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setRefreshKey((key) => key + 1)}
+              >
+                Refresh
+              </button>
             </div>
 
             <div className="market-toolbar">
@@ -187,12 +233,12 @@ function App() {
               <span className="results-count">{visibleOffers.length} shown</span>
             </div>
 
-            {offers.loading && !offers.data ? (
-              <div className="empty-state"><span className="loader" /><strong>Loading compute offers</strong><p>Connecting to the provider API…</p></div>
-            ) : offers.error ? (
-              <div className="empty-state error-state"><strong>Marketplace unavailable</strong><p>{offers.error}. Check that the API is running and the provider is configured.</p><button className="text-button" onClick={() => setRefreshKey((key) => key + 1)}>Try again</button></div>
+            {selectedOffers.loading && !selectedOffers.data ? (
+              <div className="empty-state"><span className="loader" /><strong>{marketSource === 'live' ? 'Loading live offers' : 'Loading saved offers'}</strong><p>{marketSource === 'live' ? 'Connecting to the provider API…' : 'Reading synchronized records from the database…'}</p></div>
+            ) : selectedOffers.error ? (
+              <div className="empty-state error-state"><strong>{marketSource === 'live' ? 'Live marketplace unavailable' : 'Saved marketplace unavailable'}</strong><p>{selectedOffers.error}. Check the API and try again.</p><button className="text-button" onClick={() => setRefreshKey((key) => key + 1)}>Try again</button></div>
             ) : visibleOffers.length === 0 ? (
-              <div className="empty-state"><strong>{offerList.length ? 'No matching GPUs' : 'No offers returned'}</strong><p>{offerList.length ? 'Try a different model name.' : 'The provider returned no offers. No sample offers are being substituted.'}</p></div>
+              <div className="empty-state"><strong>{offerList.length ? 'No matching GPUs' : marketSource === 'live' ? 'No live offers returned' : 'No saved offers found'}</strong><p>{offerList.length ? 'Try a different model name.' : marketSource === 'live' ? 'The provider returned no offers. No sample offers are being substituted.' : 'Synchronize provider offers before expecting saved records here.'}</p></div>
             ) : (
               <div className="offer-list">
                 {visibleOffers.map((offer, index) => {
@@ -200,8 +246,25 @@ function App() {
                   return (
                     <div className="offer-row" key={id}>
                       <div className="gpu-symbol">GPU</div>
-                      <div className="gpu-details"><strong>{offer.gpuName || 'GPU model not provided'}</strong><span>Offer ID · {String(offer.id ?? offer.externalAssetId ?? 'Not provided')}</span></div>
-                      <div className="gpu-price"><strong>{formatPrice(offer.hourlyPriceUsd)}</strong><span>per GPU offer</span></div>
+                      <div className="gpu-details">
+                        <strong>{String(offer.gpuName ?? offer.name ?? 'GPU model not provided')}</strong>
+                        <span>Offer ID · {String(offer.id ?? offer.externalAssetId ?? 'Not provided')}</span>
+                        {marketSource === 'saved' && (
+                          <span>
+                            Status: {String(offer.status ?? 'Unknown')}
+                            {typeof offer.lastSeenAt === 'string'
+                              ? ` · Seen ${new Date(offer.lastSeenAt).toLocaleString()}`
+                              : ''}
+                          </span>
+                        )}
+                      </div>
+                      <div className="gpu-price">
+                        <strong>{formatPrice(offer.hourlyPriceUsd)}</strong>
+                        <span>{marketSource === 'saved' ? 'saved provider price / hr' : 'per GPU offer'}</span>
+                        {typeof offer.gpuCount === 'number' && (
+                          <span>{offer.gpuCount} GPU{offer.gpuCount === 1 ? '' : 's'}</span>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -234,6 +297,25 @@ function App() {
           </article>
         </section>
 
+        </> 
+        ) : activeWorkspace === 'token' ? (
+          <section className="token-workspace" id="token-governance">
+            <div className="welcome-row">
+              <div>
+                <div className="eyebrow"><span className="eyebrow-line" /> ONCHAIN ASSETS &amp; GOVERNANCE</div>
+                <h1>Token <span>&amp; Governance</span></h1>
+                <p className="welcome-copy">Connect your wallet, inspect TCYGPU, manage eligible token actions, and delegate voting power on Monad Testnet.</p>
+              </div>
+            </div>
+            <WalletPanel />
+            <div className="security-note">
+              <span>ⓘ</span>
+              <p>Transactions require wallet approval. Token minting is available only to authorized accounts. Testnet tokens have no mainnet value.</p>
+            </div>
+          </section>
+        ) : (
+          <RevenuePanel />
+        )}
         <footer className="page-footer"><span>COMPUTE YIELD <span className="footer-separator">/</span> TESTNET PROTOTYPE</span><span>Data refreshes every 60 seconds <span className="footer-separator">·</span> <a href={`${API_BASE}/docs`} target="_blank" rel="noreferrer">API documentation ↗</a></span></footer>
       </section>
     </main>
@@ -241,3 +323,12 @@ function App() {
 }
 
 export default App
+
+
+
+
+
+
+
+
+

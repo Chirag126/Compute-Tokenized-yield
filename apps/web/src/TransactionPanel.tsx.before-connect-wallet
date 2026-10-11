@@ -1,0 +1,159 @@
+﻿import { useState } from 'react'
+import { createPublicClient, createWalletClient, custom, defineChain, isAddress, parseEther, type Address } from 'viem'
+
+const monad = defineChain({
+  id: 10143,
+  name: 'Monad Testnet',
+  nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+  rpcUrls: { default: { http: ['https://testnet-rpc.monad.xyz'] } },
+  blockExplorers: { default: { name: 'Monad Explorer', url: 'https://testnet.monadexplorer.com' } },
+})
+
+const explorer = 'https://testnet.monadexplorer.com/tx/'
+
+export default function TransactionPanel() {
+  const [recipient, setRecipient] = useState('')
+  const [amount, setAmount] = useState('0.01')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const [txHash, setTxHash] = useState('')
+  const [error, setError] = useState('')
+
+  async function sendTestTransaction() {
+    setError('')
+    setMessage('')
+    setTxHash('')
+
+    if (!window.ethereum) {
+      setError('MetaMask was not detected. Install or unlock MetaMask first.')
+      return
+    }
+
+    if (!isAddress(recipient)) {
+      setError('Enter a valid recipient wallet address.')
+      return
+    }
+
+    let value: bigint
+    try {
+      value = parseEther(amount)
+      if (value <= 0n) throw new Error('Amount must be greater than zero.')
+    } catch {
+      setError('Enter a valid MON amount greater than zero.')
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Send ${amount} MON on Monad Testnet to ${recipient}? Check the recipient and amount in MetaMask before confirming.`
+    )
+    if (!confirmed) return
+
+    setBusy(true)
+    try {
+      const provider = window.ethereum
+      const chainId = await provider.request({ method: 'eth_chainId' }) as string
+
+      if (Number(chainId) !== monad.id) {
+        try {
+          await provider.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x279f' }],
+          })
+        } catch (switchError) {
+          const code = (switchError as { code?: number }).code
+          if (code !== 4902) throw switchError
+
+          await provider.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x279f',
+              chainName: 'Monad Testnet',
+              nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+              rpcUrls: ['https://testnet-rpc.monad.xyz'],
+              blockExplorerUrls: ['https://testnet.monadexplorer.com'],
+            }],
+          })
+        }
+      }
+
+      const wallet = createWalletClient({
+        chain: monad,
+        transport: custom(provider as never),
+      })
+      const accounts = await wallet.requestAddresses()
+      const account = accounts[0]
+      if (!account) throw new Error('No MetaMask account is connected.')
+
+      const hash = await wallet.sendTransaction({
+        account,
+        to: recipient as Address,
+        value,
+        chain: monad,
+      })
+
+      setTxHash(hash)
+      setMessage('Transaction submitted. Waiting for network confirmation…')
+
+      const publicClient = createPublicClient({
+        chain: monad,
+        transport: custom(provider as never),
+      })
+      const receipt = await publicClient.waitForTransactionReceipt({ hash })
+
+      setMessage(
+        receipt.status === 'success'
+          ? `Confirmed in block ${receipt.blockNumber.toString()}.`
+          : 'The transaction was included but reverted.'
+      )
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Transaction failed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section style={{ padding: 16, margin: '12px 0', border: '1px solid #34384a', borderRadius: 14, background: '#171a26', color: '#f5f6ff' }}>
+      <h3 style={{ marginTop: 0 }}>Send Testnet MON</h3>
+      <p style={{ color: '#a8adc4', fontSize: 13 }}>
+        Monad Testnet only. This sends native MON, not compute-yield revenue or a contract distribution.
+      </p>
+
+      <label style={{ display: 'block', fontSize: 13, marginBottom: 6 }} htmlFor="tx-recipient">Recipient address</label>
+      <input
+        id="tx-recipient"
+        value={recipient}
+        onChange={event => setRecipient(event.target.value.trim())}
+        placeholder="0x..."
+        autoComplete="off"
+        spellCheck={false}
+        style={{ boxSizing: 'border-box', width: '100%', padding: 11, marginBottom: 12, borderRadius: 8, border: '1px solid #454b63', background: '#10121b', color: '#fff' }}
+      />
+
+      <label style={{ display: 'block', fontSize: 13, marginBottom: 6 }} htmlFor="tx-amount">Amount (MON)</label>
+      <input
+        id="tx-amount"
+        value={amount}
+        onChange={event => setAmount(event.target.value)}
+        inputMode="decimal"
+        style={{ boxSizing: 'border-box', width: '100%', padding: 11, marginBottom: 12, borderRadius: 8, border: '1px solid #454b63', background: '#10121b', color: '#fff' }}
+      />
+
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void sendTestTransaction()}
+        style={{ padding: '10px 14px', borderRadius: 9, border: 0, background: '#9c8cff', color: '#171327', fontWeight: 700, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}
+      >
+        {busy ? 'Processing…' : 'Review & Send Testnet MON'}
+      </button>
+
+      {message && <p role="status" style={{ color: '#9de5b2', overflowWrap: 'anywhere' }}>{message}</p>}
+      {txHash && <p style={{ overflowWrap: 'anywhere' }}>
+        <a href={`${explorer}${txHash}`} target="_blank" rel="noreferrer" style={{ color: '#b8aaff' }}>View transaction on Monad Explorer ↗</a>
+      </p>}
+      {error && <p role="alert" style={{ color: '#ff9caa', overflowWrap: 'anywhere' }}>{error}</p>}
+    </section>
+  )
+}
+
