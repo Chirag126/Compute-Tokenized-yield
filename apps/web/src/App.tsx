@@ -2,6 +2,7 @@
 import './App.css'
 import TransactionPanel from './TransactionPanel'
 import WalletPanel from './WalletPanel'
+import ComputeYieldPanel from './ComputeYieldPanel'
 
 
 import RevenuePanel from './RevenuePanel'
@@ -87,7 +88,7 @@ function StatusPill({ state }: { state: 'ok' | 'bad' | 'pending' }) {
 }
 
 function App() {
-  const [activeWorkspace, setActiveWorkspace] = useState<'overview' | 'token' | 'revenue'>('overview')
+  const [activeWorkspace, setActiveWorkspace] = useState<'overview' | 'compute' | 'token' | 'revenue'>('overview')
   const [refreshKey, setRefreshKey] = useState(0)
   const [search, setSearch] = useState('')
   const [marketSource, setMarketSource] = useState<'live' | 'saved'>('live')
@@ -126,6 +127,16 @@ function App() {
         <div className="workspace-label">WORKSPACE</div>
         <nav className="side-nav">
           <a className={`nav-link ${activeWorkspace === 'overview' ? 'active' : ''}`} href="#overview" onClick={(event) => { event.preventDefault(); setActiveWorkspace('overview') }}><span>◫</span> Overview</a>
+<a
+  className={`nav-link ${activeWorkspace === 'compute' ? 'active' : ''}`}
+  href="#compute-yield"
+  onClick={(event) => {
+    event.preventDefault()
+    setActiveWorkspace('compute')
+  }}
+>
+  <span>◈</span> Compute Yield
+</a>
           <a className="nav-link" href="#marketplace" onClick={(event) => { event.preventDefault(); setActiveWorkspace('overview'); document.getElementById('marketplace')?.scrollIntoView({ behavior: 'smooth' }) }}><span>▦</span> Compute marketplace</a>
           <a className={`nav-link ${activeWorkspace === 'revenue' ? 'active' : ''}`} href="#revenue-workspace" onClick={(event) => { event.preventDefault(); setActiveWorkspace('revenue') }}><span>↗</span> Revenue sharing</a>
           <a className={`nav-link ${activeWorkspace === 'token' ? 'active' : ''}`} href="#token-governance" onClick={(event) => { event.preventDefault(); setActiveWorkspace('token') }}><span>◇</span> Token &amp; Governance</a>
@@ -142,7 +153,13 @@ function App() {
 
       <section className="main-content" id="overview">
         <header className="topbar">
-          <div className="breadcrumb">Workspace <span>/</span> {activeWorkspace === 'token' ? 'Token & Governance' : activeWorkspace === 'revenue' ? 'Revenue Sharing' : 'Overview'}</div>
+          <div className="breadcrumb">Workspace <span>/</span> {activeWorkspace === 'compute'
+  ? 'Compute Yield'
+  : activeWorkspace === 'token'
+    ? 'Token & Governance'
+    : activeWorkspace === 'revenue'
+      ? 'Revenue Sharing'
+      : 'Overview'}</div>
           <div className="topbar-actions">
             <span className="environment-tag">TESTNET</span>
             <button className="refresh-button" onClick={() => setRefreshKey((key) => key + 1)} disabled={chain.loading || offers.loading || revenue.loading}>
@@ -298,7 +315,9 @@ function App() {
         </section>
 
         </> 
-        ) : activeWorkspace === 'token' ? (
+        ) : activeWorkspace === 'compute' ? (
+  <ComputeYieldPanel />
+) : activeWorkspace === 'token' ? (
           <section className="token-workspace" id="token-governance">
             <div className="welcome-row">
               <div>
@@ -323,6 +342,7 @@ function App() {
 }
 
 export default App
+
 
 
 
