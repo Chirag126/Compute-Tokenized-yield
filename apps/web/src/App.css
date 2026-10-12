@@ -377,3 +377,17 @@ input:focus-visible {
   outline: 2px solid #36d9f5;
   outline-offset: 3px;
 }
+
+
+.wallet-action {
+  background: #9c8cff !important;
+  border: 1px solid #9c8cff !important;
+  color: #100d20 !important;
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-weight: 600;
+}
+.wallet-action:hover:not(:disabled) {
+  background: #b0a4ff !important;
+  border-color: #b0a4ff !important;
+}
