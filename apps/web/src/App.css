@@ -109,3 +109,244 @@ h2 { margin-top: 7px; color: #edf0f8; font: 600 19px 'Space Grotesk', sans-serif
 @media (max-width: 540px) {
   .market-source-switch { padding-right: 15px; padding-left: 15px; }
 }
+
+/* Revenue Sharing — final layout overrides */
+.revenue-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+}
+
+.revenue-workspace .section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.revenue-workspace .panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.revenue-workspace .content-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.revenue-workspace .metric-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 22px;
+  overflow: hidden;
+}
+
+.revenue-workspace .metric-card > span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.revenue-workspace .metric-card > strong {
+  font-size: 18px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.revenue-workspace .panel-card {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel);
+}
+
+.revenue-workspace .distribution-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+
+.revenue-workspace .distribution-card {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.revenue-workspace .distribution-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.revenue-workspace .distribution-header h4 {
+  margin: 10px 0 0;
+  font-size: 24px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.revenue-workspace .distribution-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 22px 0;
+}
+
+.revenue-workspace .distribution-details > div {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.revenue-workspace .distribution-details dt {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.revenue-workspace .distribution-details dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.revenue-workspace .distribution-card > button {
+  min-height: 44px;
+  padding: 11px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.revenue-workspace .distribution-card > button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.revenue-workspace .success-message,
+.revenue-workspace .error-message,
+.revenue-workspace .eligibility-message,
+.revenue-workspace .muted-note {
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+
+@media (max-width: 900px) {
+  .revenue-workspace .content-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .revenue-workspace {
+    gap: 18px;
+  }
+
+  .revenue-workspace .content-grid,
+  .revenue-workspace .distribution-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .revenue-workspace .panel-card,
+  .revenue-workspace .distribution-card {
+    padding: 16px;
+  }
+
+  .revenue-workspace .distribution-header h4 {
+    font-size: 21px;
+  }
+
+  .revenue-workspace .panel-actions {
+    width: 100%;
+  }
+}
+
+/* Create distribution form */
+.distribution-create-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.distribution-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.distribution-form-field label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.distribution-form-field input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.distribution-form-field input[readonly] {
+  opacity: 0.8;
+  font-family: "DM Mono", monospace;
+  font-size: 12px;
+}
+
+.snapshot-input-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.snapshot-input-row input {
+  flex: 1;
+}
+
+.distribution-create-form > button {
+  min-height: 46px;
+  padding: 12px 18px;
+  border: 1px solid var(--purple);
+  border-radius: 10px;
+  background: var(--purple);
+  color: #100d20;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: end;
+}
+
+.distribution-create-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .distribution-create-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

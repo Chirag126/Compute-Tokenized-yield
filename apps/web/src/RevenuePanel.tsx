@@ -5,6 +5,7 @@ import {
   custom,
   defineChain,
   formatUnits,
+  parseUnits,
   getAddress,
   http,
   isAddress,
@@ -43,6 +44,35 @@ const publicClient = createPublicClient({
 const distributorAbi = [
   {
     type: 'function',
+    name: 'REVENUE_MANAGER_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'hasRole',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+  {
+    type: 'function',
+    name: 'depositRevenue',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'token', type: 'address' },
+      { name: 'revenueToken', type: 'address' },
+      { name: 'snapshotBlock', type: 'uint256' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ name: 'distributionId', type: 'uint256' }],
+  },
+  {
+    type: 'function',
     name: 'claim',
     stateMutability: 'nonpayable',
     inputs: [{ name: 'distributionId', type: 'uint256' }],
@@ -70,13 +100,13 @@ const distributorAbi = [
 const tokenAbi = [
   {
     type: 'function',
-    name: 'getPastVotes',
-    stateMutability: 'view',
+    name: 'approve',
+    stateMutability: 'nonpayable',
     inputs: [
-      { name: 'account', type: 'address' },
-      { name: 'timepoint', type: 'uint256' },
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' },
     ],
-    outputs: [{ name: '', type: 'uint256' }],
+    outputs: [{ name: '', type: 'bool' }],
   },
   {
     type: 'function',
@@ -84,6 +114,23 @@ const tokenAbi = [
     stateMutability: 'view',
     inputs: [],
     outputs: [{ name: '', type: 'uint8' }],
+  },
+  {
+    type: 'function',
+    name: 'getPastTotalSupply',
+    stateMutability: 'view',
+    inputs: [{ name: 'timepoint', type: 'uint256' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'getPastVotes',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'account', type: 'address' },
+      { name: 'timepoint', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
   },
 ] as const
 
@@ -156,6 +203,9 @@ export default function RevenuePanel() {
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
   const [claimingId, setClaimingId] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [distributionAmount, setDistributionAmount] = useState('10')
+  const [snapshotBlockInput, setSnapshotBlockInput] = useState('')
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
 
@@ -413,6 +463,140 @@ export default function RevenuePanel() {
     }
   }
 
+  const createDistribution = async () => {
+    if (!account || !window.ethereum) {
+      setError('Connect the authorized manager wallet first.')
+      return
+    }
+
+    setCreating(true)
+    setError('')
+    setNotice('')
+
+    try {
+      const assetToken = getAddress('0xee512B0E69E0CE4b2AB216a42ba8025834f930B3')
+      const revenueToken = getAddress('0xAfd44226feEa8389c054c68D05026263911665ee')
+
+      if (status?.paused) {
+        throw new Error('The distributor is paused.')
+      }
+
+      const role = await publicClient.readContract({
+        address: distributor,
+        abi: distributorAbi,
+        functionName: 'REVENUE_MANAGER_ROLE',
+      })
+
+      const authorized = await publicClient.readContract({
+        address: distributor,
+        abi: distributorAbi,
+        functionName: 'hasRole',
+        args: [role, account],
+      })
+
+      if (!authorized) {
+        throw new Error('This wallet does not have REVENUE_MANAGER_ROLE.')
+      }
+
+      const amountText = distributionAmount.trim()
+      if (!amountText || !/^\d+(\.\d{1,18})?$/.test(amountText)) {
+        throw new Error('Enter a positive MREV amount with up to 18 decimal places.')
+      }
+
+      const amountWei = parseUnits(amountText, 18)
+      if (amountWei <= 0n) {
+        throw new Error('The deposit amount must be greater than zero.')
+      }
+
+      if (!/^\d+$/.test(snapshotBlockInput.trim())) {
+        throw new Error('Enter a valid snapshot block, or use the latest confirmed snapshot button.')
+      }
+
+      const snapshotBlock = BigInt(snapshotBlockInput)
+      const latestBlock = await publicClient.getBlockNumber()
+
+      if (snapshotBlock >= latestBlock) {
+        throw new Error(`Snapshot block must be older than the current block (${latestBlock}).`)
+      }
+
+      const historicalSupply = await publicClient.readContract({
+        address: assetToken,
+        abi: tokenAbi,
+        functionName: 'getPastTotalSupply',
+        args: [snapshotBlock],
+      })
+
+      if (historicalSupply <= 0n) {
+        throw new Error('TCYGPU had no historical supply at that snapshot block.')
+      }
+
+      const walletClient = createWalletClient({
+        account,
+        chain: monad,
+        transport: custom(window.ethereum as never),
+      })
+
+      setNotice('Confirm MREV approval in MetaMask…')
+
+      const approvalHash = await walletClient.writeContract({
+        address: revenueToken,
+        abi: tokenAbi,
+        functionName: 'approve',
+        args: [distributor, amountWei],
+        account,
+        chain: monad,
+      })
+
+      const approvalReceipt = await publicClient.waitForTransactionReceipt({
+        hash: approvalHash,
+      })
+
+      if (approvalReceipt.status !== 'success') {
+        throw new Error('MREV approval transaction failed.')
+      }
+
+      setNotice('Approval confirmed. Confirm Create distribution in MetaMask…')
+
+      const depositHash: Hash = await walletClient.writeContract({
+        address: distributor,
+        abi: distributorAbi,
+        functionName: 'depositRevenue',
+        args: [assetToken, revenueToken, snapshotBlock, amountWei],
+        account,
+        chain: monad,
+      })
+
+      setNotice(`Distribution transaction submitted: ${depositHash}`)
+
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: depositHash,
+      })
+
+      if (receipt.status !== 'success') {
+        throw new Error('Distribution transaction reverted.')
+      }
+
+      setNotice(`Distribution created successfully. Transaction: ${depositHash}`)
+      setSnapshotBlockInput('')
+      await load()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const useLatestSnapshot = async () => {
+    setError('')
+    try {
+      const latestBlock = await publicClient.getBlockNumber()
+      if (latestBlock < 2n) throw new Error('Not enough blocks exist yet.')
+      setSnapshotBlockInput(String(latestBlock - 1n))
+    } catch (cause) {
+      setError(`Could not fetch a snapshot block: ${errorMessage(cause)}`)
+    }
+  }
+
   return (
     <section className="revenue-workspace" id="revenue-workspace">
       <div className="section-heading">
@@ -457,6 +641,78 @@ export default function RevenuePanel() {
           <span>Contract status</span>
           <strong>{status?.paused ? 'Paused' : status ? 'Active' : 'Unknown'}</strong>
         </div>
+      </div>
+
+      <div className="panel-card create-distribution-panel">
+        <h3>Create distribution</h3>
+        <p className="muted-note">
+          Manager-only action on Monad Testnet. This test form deposits MREV
+          into the existing distributor; each transaction requires MetaMask approval.
+        </p>
+
+        {!account ? (
+          <p>Connect the authorized manager wallet to create a distribution.</p>
+        ) : (
+          <div className="distribution-create-form">
+            <div className="distribution-form-field">
+              <label htmlFor="distribution-asset-token">Asset token (TCYGPU)</label>
+              <input
+                id="distribution-asset-token"
+                value="0xee512B0E69E0CE4b2AB216a42ba8025834f930B3"
+                readOnly
+              />
+            </div>
+
+            <div className="distribution-form-field">
+              <label htmlFor="distribution-revenue-token">Revenue token (MREV)</label>
+              <input
+                id="distribution-revenue-token"
+                value="0xAfd44226feEa8389c054c68D05026263911665ee"
+                readOnly
+              />
+            </div>
+
+            <div className="distribution-form-field">
+              <label htmlFor="distribution-amount">Amount (MREV)</label>
+              <input
+                id="distribution-amount"
+                type="number"
+                min="0.000000000000000001"
+                step="0.000000000000000001"
+                value={distributionAmount}
+                onChange={(event) => setDistributionAmount(event.target.value)}
+                disabled={creating}
+              />
+            </div>
+
+            <div className="distribution-form-field">
+              <label htmlFor="distribution-snapshot">Snapshot block</label>
+              <div className="snapshot-input-row">
+                <input
+                  id="distribution-snapshot"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={snapshotBlockInput}
+                  onChange={(event) => setSnapshotBlockInput(event.target.value)}
+                  placeholder="Choose a confirmed block"
+                  disabled={creating}
+                />
+                <button type="button" onClick={() => void useLatestSnapshot()} disabled={creating}>
+                  Use latest confirmed
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void createDistribution()}
+              disabled={creating || !snapshotBlockInput || !distributionAmount}
+            >
+              {creating ? 'Creating distribution…' : 'Approve MREV & create distribution'}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="panel-card">
@@ -543,10 +799,12 @@ export default function RevenuePanel() {
       <p className="muted-note">
         Claims are executed on Monad Testnet. Eligibility depends on the
         distribution snapshot, historical voting power, contract status,
-        claim deadline, and remaining funds. This panel does not create
-        distributions or deposit revenue.
+        claim deadline, and remaining funds. Creating a distribution requires
+        the revenue-manager role and two MetaMask transactions.
       </p>
     </section>
   )
 }
+
+
 
