@@ -3,20 +3,20 @@
 :root {
   font-family: 'DM Sans', sans-serif;
   color: #e9edf7;
-  background: #080b12;
+  background: #05070b;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-optical-sizing: auto;
   font-weight: 400;
-  --bg: #080b12;
-  --panel: #101520;
-  --border: #222a3a;
+  --bg: #05070b;
+  --panel: #0c1118;
+  --border: #183449;
   --muted: #8a94aa;
   --text: #e9edf7;
-  --purple: #9c8cff;
-  --green: #63e6b0;
+  --purple: #00aeea;
+  --green: #36d9f5;
 }
 * { box-sizing: border-box; }
 html { min-width: 320px; scroll-behavior: smooth; }
