@@ -1,4 +1,4 @@
-﻿import { useCallback, useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   createPublicClient,
   createWalletClient,
@@ -343,7 +343,7 @@ export default function WalletPanel() {
         </p>
       </div>
       {!address ? (
-        <button type="button" disabled={busy} onClick={() => void connectWallet()}>
+        <button className="wallet-monochrome-button" type="button" disabled={busy} onClick={() => void connectWallet()}>
           {busy ? 'Connecting…' : 'Connect MetaMask'}
         </button>
       ) : (
@@ -374,7 +374,7 @@ export default function WalletPanel() {
               value={sendAmount}
               onChange={(event) => setSendAmount(event.target.value)}
             />
-            <button type="button" disabled={busy} onClick={() => void sendNativeMon()}>
+            <button className="wallet-monochrome-button" type="button" disabled={busy} onClick={() => void sendNativeMon()}>
               {busy ? 'Processing…' : 'Send MON'}
             </button>
           </div>

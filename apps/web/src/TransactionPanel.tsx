@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPublicClient, createWalletClient, custom, defineChain, isAddress, parseEther, type Address } from 'viem'
 
 const monad = defineChain({
@@ -160,7 +160,7 @@ export default function TransactionPanel() {
           type="button"
           onClick={() => void connectWallet()}
           disabled={connecting || busy}
-          style={{ padding: '10px 14px', borderRadius: 9, border: 0, background: '#9c8cff', color: '#171327', fontWeight: 700, cursor: connecting || busy ? 'wait' : 'pointer', opacity: connecting || busy ? 0.7 : 1 }}
+          style={{ padding: '10px 14px', borderRadius: 9, border: '1px solid #444444', background: '#242424', color: '#f0f0f0', fontWeight: 500, cursor: connecting || busy ? 'wait' : 'pointer', opacity: connecting || busy ? 0.7 : 1 }}
         >
           {connecting ? 'Connecting…' : account ? 'Wallet Connected' : 'Connect Wallet'}
         </button>
@@ -191,7 +191,7 @@ export default function TransactionPanel() {
         type="button"
         disabled={busy || !account}
         onClick={() => void sendTestTransaction()}
-        style={{ padding: '10px 14px', borderRadius: 9, border: 0, background: '#9c8cff', color: '#171327', fontWeight: 700, cursor: busy || !account ? 'not-allowed' : 'pointer', opacity: busy || !account ? 0.7 : 1 }}
+        style={{ padding: '10px 14px', borderRadius: 9, border: '1px solid #444444', background: '#242424', color: '#f0f0f0', fontWeight: 500, cursor: busy || !account ? 'not-allowed' : 'pointer', opacity: busy || !account ? 0.7 : 1 }}
       >
         {busy ? 'Processing…' : 'Review & Send Testnet MON'}
       </button>

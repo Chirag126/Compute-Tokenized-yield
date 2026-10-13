@@ -1,4 +1,4 @@
-﻿#root { min-height: 100vh; }
+#root { min-height: 100vh; }
 .app-shell { min-height: 100vh; background: radial-gradient(ellipse at 80% 0%, rgba(0, 174, 234, .10), transparent 36%), #05070b;}
 .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 5; display: flex; flex-direction: column; width: 244px; padding: 28px 17px 22px; background: #080b10; border-right: 1px solid #142b3a; }
 .brand { display: flex; align-items: center; gap: 11px; padding: 0 12px; text-decoration: none; font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -.7px; color: #f6f7ff; }
@@ -390,4 +390,746 @@ input:focus-visible {
 .wallet-action:hover:not(:disabled) {
   background: #b0a4ff !important;
   border-color: #b0a4ff !important;
+}
+
+/* ==========================================================
+   LINEAR-INSPIRED MONOCHROME OVERRIDES
+   Presentation only — existing React and transaction logic
+   remain unchanged.
+   ========================================================== */
+
+:root {
+  color-scheme: dark;
+  --linear-bg: #080808;
+  --linear-sidebar: #0b0b0b;
+  --linear-panel: #111111;
+  --linear-panel-hover: #171717;
+  --linear-border: #292929;
+  --linear-border-soft: #202020;
+  --linear-text: #eeeeee;
+  --linear-muted: #929292;
+  --linear-subtle: #686868;
+  --linear-white: #f5f5f5;
+  --linear-accent: #dedede;
+}
+
+html,
+body {
+  background: var(--linear-bg) !important;
+  color: var(--linear-text);
+}
+
+body {
+  background-image: none !important;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: var(--linear-bg) !important;
+  background-image: none !important;
+  color: var(--linear-text);
+}
+
+.sidebar {
+  background: var(--linear-sidebar) !important;
+  background-image: none !important;
+  border-right: 1px solid var(--linear-border) !important;
+  box-shadow: none !important;
+}
+
+.brand,
+.brand > span,
+.brand-accent {
+  color: var(--linear-text) !important;
+}
+
+.brand-accent {
+  font-weight: 500;
+}
+
+.brand-mark {
+  background: #171717 !important;
+  border: 1px solid #555 !important;
+  box-shadow: none !important;
+}
+
+.brand-mark span {
+  background: #d8d8d8 !important;
+}
+
+.workspace-label,
+.section-kicker,
+.eyebrow,
+.breadcrumb,
+.sidebar-note,
+.page-footer,
+.panel-heading p,
+.metric-top,
+.metric-bottom,
+.subtle,
+.panel-footnote,
+.results-count {
+  color: var(--linear-muted) !important;
+}
+
+.nav-link {
+  color: #a3a3a3 !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: background .15s ease, color .15s ease;
+}
+
+.nav-link:hover {
+  background: #171717 !important;
+  color: #f0f0f0 !important;
+}
+
+.nav-link.active {
+  color: #f5f5f5 !important;
+  background: #1c1c1c !important;
+  border-color: #303030 !important;
+  box-shadow: none !important;
+}
+
+.nav-link > span {
+  color: #a7a7a7 !important;
+}
+
+.network-card {
+  background: #111111 !important;
+  border: 1px solid var(--linear-border) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.network-card strong,
+.network-card small {
+  color: #d4d4d4 !important;
+}
+
+.network-dot,
+.live-label > span,
+.footnote-dot {
+  background: #b7b7b7 !important;
+  box-shadow: none !important;
+}
+
+.main-content {
+  min-width: 0;
+  background: var(--linear-bg) !important;
+  background-image: none !important;
+}
+
+.topbar {
+  min-height: 58px;
+  background: rgba(8, 8, 8, .97) !important;
+  border-bottom: 1px solid var(--linear-border) !important;
+  box-shadow: none !important;
+}
+
+.environment-tag,
+.live-label,
+.contract-symbol {
+  background: #171717 !important;
+  color: #d0d0d0 !important;
+  border: 1px solid #343434 !important;
+  box-shadow: none !important;
+}
+
+button,
+.refresh-button,
+.text-button,
+.source-tab,
+.intent-button {
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+button,
+.refresh-button {
+  border-radius: 7px !important;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.refresh-button {
+  color: #dedede !important;
+  background: #151515 !important;
+  border: 1px solid #343434 !important;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background: #202020 !important;
+  border-color: #505050 !important;
+}
+
+.welcome-row {
+  align-items: center;
+  gap: 24px;
+  padding-top: 28px;
+  padding-bottom: 24px;
+}
+
+.welcome-row h1,
+.welcome-row h1 span {
+  color: #f0f0f0 !important;
+  background: none !important;
+  -webkit-text-fill-color: #f0f0f0 !important;
+  text-shadow: none !important;
+  letter-spacing: -.045em;
+}
+
+.welcome-row h1 {
+  font-size: clamp(26px, 3vw, 36px) !important;
+  line-height: 1.2 !important;
+  font-weight: 600 !important;
+}
+
+.welcome-copy {
+  max-width: 660px;
+  color: #999999 !important;
+  font-size: 13px !important;
+  line-height: 1.8 !important;
+}
+
+.eyebrow-line {
+  background: #bdbdbd !important;
+  box-shadow: none !important;
+}
+
+.hero-orb {
+  display: none !important;
+}
+
+.metrics-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0 !important;
+  overflow: hidden;
+  border: 1px solid var(--linear-border) !important;
+  border-radius: 9px !important;
+  background: #101010 !important;
+  box-shadow: none !important;
+}
+
+.metric-card {
+  min-width: 0;
+  padding: 18px 19px !important;
+  background: #101010 !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-right: 1px solid var(--linear-border) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.metric-card:last-child {
+  border-right: 0 !important;
+}
+
+.metric-card:hover {
+  background: #141414 !important;
+  transform: none !important;
+}
+
+.metric-icon,
+.metric-icon.purple,
+.metric-icon.blue,
+.metric-icon.green,
+.metric-icon.amber {
+  display: none !important;
+}
+
+.metric-value {
+  color: #f0f0f0 !important;
+  font-size: clamp(21px, 2vw, 28px) !important;
+  font-weight: 600 !important;
+  letter-spacing: -.035em;
+}
+
+.metric-value.small-value {
+  font-size: 22px !important;
+}
+
+.metric-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #bcbcbc !important;
+  font-size: 10px !important;
+}
+
+.status-pill > span {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: #a7a7a7 !important;
+  box-shadow: none !important;
+}
+
+.status-pill.ok > span,
+.status-pill.bad > span,
+.status-pill.pending > span {
+  background: #a7a7a7 !important;
+}
+
+.content-grid {
+  gap: 16px !important;
+  margin-top: 20px;
+}
+
+.panel,
+.metric-card,
+.transaction-panel,
+.yield-card,
+.panel-heading,
+.offer-row,
+.detail-row,
+.security-note,
+.callout,
+.empty-state {
+  box-shadow: none !important;
+}
+
+.panel {
+  background: #101010 !important;
+  background-image: none !important;
+  border: 1px solid var(--linear-border) !important;
+  border-radius: 9px !important;
+}
+
+.panel-heading {
+  border-bottom-color: var(--linear-border-soft) !important;
+}
+
+.panel-heading h2 {
+  color: #e7e7e7 !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  letter-spacing: -.02em;
+}
+
+.section-kicker {
+  font-size: 9px !important;
+  letter-spacing: .12em !important;
+}
+
+.market-source-switch {
+  border-bottom: 1px solid var(--linear-border-soft) !important;
+}
+
+.source-tab {
+  color: #969696 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid transparent !important;
+  border-radius: 0 !important;
+}
+
+.source-tab.active {
+  color: #f0f0f0 !important;
+  background: transparent !important;
+  border-bottom: 1px solid #e1e1e1 !important;
+}
+
+.search-box,
+.yield-form select,
+.yield-form input,
+input,
+select,
+textarea {
+  color: #e4e4e4 !important;
+  background: #0b0b0b !important;
+  border-color: #343434 !important;
+  box-shadow: none !important;
+}
+
+.search-box:focus-within,
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #777777 !important;
+  outline-color: #777777 !important;
+  box-shadow: none !important;
+}
+
+.offer-row {
+  background: transparent !important;
+  border-bottom: 1px solid var(--linear-border-soft) !important;
+  border-radius: 0 !important;
+}
+
+.offer-row:hover {
+  background: #171717 !important;
+}
+
+.gpu-symbol {
+  background: #191919 !important;
+  border: 1px solid #333333 !important;
+  color: #d4d4d4 !important;
+  box-shadow: none !important;
+}
+
+.gpu-details strong,
+.gpu-price strong,
+.detail-row strong {
+  color: #e5e5e5 !important;
+}
+
+.gpu-details span,
+.gpu-price span,
+.detail-row span {
+  color: #8e8e8e !important;
+}
+
+.contract-status,
+.security-note,
+.panel-footnote {
+  background: transparent !important;
+  border-color: var(--linear-border-soft) !important;
+  box-shadow: none !important;
+}
+
+.contract-status-dot {
+  background: #bdbdbd !important;
+  box-shadow: none !important;
+}
+
+.explorer-link,
+.explorer-link span,
+.intent-explorer-link {
+  color: #dedede !important;
+}
+
+a {
+  text-decoration-color: #555 !important;
+}
+
+a:hover {
+  color: #ffffff !important;
+}
+
+.text-button {
+  color: #d4d4d4 !important;
+  background: transparent !important;
+  border: 1px solid #353535 !important;
+}
+
+.text-button:hover {
+  background: #1c1c1c !important;
+}
+
+.empty-state {
+  background: transparent !important;
+  color: #d8d8d8 !important;
+}
+
+.loader {
+  border-color: #414141 !important;
+  border-top-color: #cfcfcf !important;
+}
+
+.page-footer {
+  border-top: 1px solid var(--linear-border) !important;
+}
+
+.footer-separator {
+  color: #5c5c5c !important;
+}
+
+/* Keep the existing wallet and transaction controls usable,
+   but replace their colorful presentation with neutral surfaces. */
+.transaction-panel,
+.wallet-panel,
+.token-workspace .panel,
+.revenue-workspace .panel {
+  background: #111111 !important;
+  background-image: none !important;
+  border-color: #303030 !important;
+  box-shadow: none !important;
+}
+
+.transaction-panel button,
+.wallet-panel button,
+.token-workspace button,
+.revenue-panel button,
+.intent-button {
+  color: #eeeeee !important;
+  background: #242424 !important;
+  border: 1px solid #444444 !important;
+  box-shadow: none !important;
+}
+
+.transaction-panel button:hover:not(:disabled),
+.wallet-panel button:hover:not(:disabled),
+.token-workspace button:hover:not(:disabled),
+.revenue-panel button:hover:not(:disabled),
+.intent-button:hover:not(:disabled) {
+  background: #303030 !important;
+}
+
+.intent-card,
+.intent-result,
+.yield-total,
+.yield-daily > div,
+.yield-selected {
+  background: #111111 !important;
+  background-image: none !important;
+  border-color: #303030 !important;
+  box-shadow: none !important;
+}
+
+.intent-network-badge {
+  background: #171717 !important;
+  color: #dedede !important;
+  border-color: #383838 !important;
+}
+
+.intent-result-icon,
+.intent-footer-dot {
+  background: #bdbdbd !important;
+  color: #111111 !important;
+  border-color: #bdbdbd !important;
+  box-shadow: none !important;
+}
+
+.yield-total strong,
+.yield-selected strong,
+.yield-daily strong {
+  color: #eeeeee !important;
+}
+
+@media (max-width: 1000px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-card:nth-child(2) {
+    border-right: 0 !important;
+  }
+
+  .metric-card:nth-child(-n+2) {
+    border-bottom: 1px solid var(--linear-border) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .metrics-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metric-card,
+  .metric-card:nth-child(2) {
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--linear-border) !important;
+  }
+
+  .metric-card:last-child {
+    border-bottom: 0 !important;
+  }
+
+  .welcome-row {
+    padding-top: 20px;
+    padding-bottom: 16px;
+  }
+}
+
+/* Revenue Sharing — Connect Wallet */
+.revenue-connect-wallet {
+  background: #242424 !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #444 !important;
+  border-radius: 7px !important;
+  padding: 9px 15px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.revenue-connect-wallet:hover:not(:disabled) {
+  background: #303030 !important;
+  border-color: #666 !important;
+}
+
+.revenue-connect-wallet:focus-visible {
+  outline: 1px solid #999;
+  outline-offset: 3px;
+}
+/* Revenue Sharing - Refresh button */
+.revenue-refresh-button {
+  background: #242424 !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #444 !important;
+  border-radius: 7px !important;
+  padding: 9px 15px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+  transition: background 0.15s ease, border-color 0.15s ease !important;
+}
+
+.revenue-refresh-button:hover:not(:disabled) {
+  background: #303030 !important;
+  border-color: #666 !important;
+}
+
+.revenue-refresh-button:focus-visible {
+  outline: 1px solid #999;
+  outline-offset: 3px;
+}
+
+.revenue-refresh-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+/* Revenue Sharing - Monochrome Action Buttons */
+.revenue-panel button,
+.revenue-workspace button,
+.revenue-connect-wallet,
+.revenue-refresh-button {
+  background: #242424 !important;
+  background-image: none !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #444444 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transition: background 0.15s ease, border-color 0.15s ease !important;
+}
+
+.revenue-panel button:hover:not(:disabled),
+.revenue-workspace button:hover:not(:disabled),
+.revenue-connect-wallet:hover:not(:disabled),
+.revenue-refresh-button:hover:not(:disabled) {
+  background: #303030 !important;
+  background-image: none !important;
+  border-color: #666666 !important;
+}
+
+.revenue-panel button:disabled,
+.revenue-workspace button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+/* Wallet Panel - Monochrome Buttons */
+.wallet-panel button,
+.transaction-panel button {
+  background: #242424 !important;
+  background-image: none !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #444444 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transition: background 0.15s ease, border-color 0.15s ease !important;
+}
+
+.wallet-panel button:hover:not(:disabled),
+.transaction-panel button:hover:not(:disabled) {
+  background: #303030 !important;
+  background-image: none !important;
+  border-color: #666666 !important;
+}
+
+.wallet-panel button:focus-visible,
+.transaction-panel button:focus-visible {
+  outline: 1px solid #999999;
+  outline-offset: 3px;
+}
+
+.wallet-panel button:disabled,
+.transaction-panel button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+/* FINAL WALLET BUTTON THEME OVERRIDE */
+.wallet-panel button,
+.transaction-panel button,
+.wallet-panel button:not(:disabled),
+.transaction-panel button:not(:disabled) {
+  background: #242424 !important;
+  background-color: #242424 !important;
+  background-image: none !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #444444 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.wallet-panel button:hover:not(:disabled),
+.transaction-panel button:hover:not(:disabled) {
+  background: #303030 !important;
+  background-color: #303030 !important;
+  background-image: none !important;
+  border-color: #666666 !important;
+}
+/* Wallet & Transactions - exact panel button override */
+.wallet-transactions-panel button {
+  background: #242424 !important;
+  background-color: #242424 !important;
+  background-image: none !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #444444 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.wallet-transactions-panel button:hover:not(:disabled) {
+  background: #303030 !important;
+  background-color: #303030 !important;
+  border-color: #666666 !important;
+}
+
+.wallet-transactions-panel button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+/* Wallet buttons: monochrome theme */
+.wallet-monochrome-button,
+.wallet-monochrome-button:hover:not(:disabled) {
+  background: #242424 !important;
+  background-color: #242424 !important;
+  background-image: none !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #444444 !important;
+  box-shadow: none !important;
+}
+
+.wallet-monochrome-button:hover:not(:disabled) {
+  background: #303030 !important;
+  border-color: #666666 !important;
+}
+/* Transaction Panel - Monochrome Buttons */
+.transaction-panel button,
+.transaction-panel button:hover:not(:disabled),
+.transaction-panel button:focus-visible {
+  background: #242424 !important;
+  background-color: #242424 !important;
+  background-image: none !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #444444 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.transaction-panel button:hover:not(:disabled) {
+  background: #303030 !important;
+  border-color: #666666 !important;
+}
+
+.transaction-panel button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }

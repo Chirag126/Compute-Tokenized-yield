@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   createPublicClient,
   createWalletClient,
@@ -610,11 +610,11 @@ export default function RevenuePanel() {
         </div>
 
         <div className="panel-actions">
-          <button type="button" onClick={() => void load()} disabled={loading}>
+          <button type="button" className="revenue-refresh-button" onClick={() => void load()} disabled={loading}>
             {loading ? 'Refreshing…' : 'Refresh'}
           </button>
           {!account ? (
-            <button type="button" onClick={() => void connectWallet()}>
+            <button type="button" className="revenue-connect-wallet" onClick={() => void connectWallet()}>
               Connect wallet
             </button>
           ) : (
